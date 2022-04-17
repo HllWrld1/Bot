@@ -3,7 +3,6 @@ package com.simonenko.demo;
 import com.simonenko.demo.Entity.ChatState;
 
 import com.simonenko.demo.Entity.User;
-import com.simonenko.demo.Repository.ChatDataRepository;
 import com.simonenko.demo.Repository.ChatStateRepository;
 import com.simonenko.demo.Repository.UserRepository;
 import org.slf4j.Logger;
@@ -11,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.NumberUtils;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
@@ -26,7 +26,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Component
 class Bot extends TelegramLongPollingBot {
@@ -37,7 +36,7 @@ class Bot extends TelegramLongPollingBot {
     private final String username;
 
 
-    enum State {
+/*    enum State {
         ENTERNAME,
         ENTERAGE,
         ENTERHEIGHT,
@@ -45,10 +44,9 @@ class Bot extends TelegramLongPollingBot {
         ENTERACTIVITY,
         ENTERGOAL,
         ENTERMENU
-    }
+    }*/
 
-    @Autowired
-    private ChatDataRepository chatDataRepository;
+
     @Autowired
     private ChatStateRepository chatStateRepository;
     @Autowired
@@ -123,7 +121,7 @@ class Bot extends TelegramLongPollingBot {
         try {
             execute(response);
             logger.info("Sent message \"{}\" to {}", text, chatId);
-            chatStateRepository.save(new ChatState(chatId, State.ENTERNAME.toString()));
+            chatStateRepository.save(new ChatState(chatId, DialogState.ENTERNAME.toString()));
             userRepository.save(new User(chatId));
         } catch (TelegramApiException e) {
             logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
@@ -138,7 +136,7 @@ class Bot extends TelegramLongPollingBot {
         try {
             execute(response);
             logger.info("Sent message \"{}\" to {}", text, chatId);
-            chatStateRepository.changeState(chatId, State.ENTERAGE.toString());
+            chatStateRepository.changeState(chatId, DialogState.ENTERAGE.toString());
             userRepository.changeName(chatId, message.getText());
         } catch (TelegramApiException e) {
             logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
@@ -149,13 +147,18 @@ class Bot extends TelegramLongPollingBot {
     public void handlerAge(Long chatId, Message message) {
         String text = "Какой твой рост (см)?";
         SendMessage response = new SendMessage();
+        if (!isNum(response.getText())) {
+            chatStateRepository.save(new ChatState(chatId, DialogState.ENTERNAME.toString()));
+
+            return;
+        }
         response.setChatId(String.valueOf(chatId));
         response.setText(text);
         int me = Integer.parseInt(message.getText());
         try {
             execute(response);
             logger.info("Sent message \"{}\" to {}", text, chatId);
-            chatStateRepository.changeState(chatId, State.ENTERHEIGHT.toString());
+            chatStateRepository.changeState(chatId, DialogState.ENTERHEIGHT.toString());
             userRepository.changeAge(chatId, me);
         } catch (TelegramApiException e) {
             logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
@@ -172,7 +175,7 @@ class Bot extends TelegramLongPollingBot {
         try {
             execute(response);
             logger.info("Sent message \"{}\" to {}", text, chatId);
-            chatStateRepository.changeState(chatId, State.ENTERWEIGHT.toString());
+            chatStateRepository.changeState(chatId, DialogState.ENTERWEIGHT.toString());
             userRepository.changeHeight(chatId, me);
         } catch (TelegramApiException e) {
             logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
@@ -200,7 +203,7 @@ class Bot extends TelegramLongPollingBot {
         try {
             execute(response);
             logger.info("Sent message \"{}\" to {}", text, chatId);
-            chatStateRepository.changeState(chatId, State.ENTERACTIVITY.toString());
+            chatStateRepository.changeState(chatId, DialogState.ENTERACTIVITY.toString());
             userRepository.changeWeight(chatId, me);
         } catch (TelegramApiException e) {
             logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
@@ -250,7 +253,7 @@ class Bot extends TelegramLongPollingBot {
         try {
             execute(response);
             logger.info("Sent message \"{}\" to {}", text, chatId);
-            chatStateRepository.changeState(chatId, State.ENTERGOAL.toString());
+            chatStateRepository.changeState(chatId, DialogState.ENTERGOAL.toString());
             userRepository.changeActivity(chatId, callbackQuery.getData());
         } catch (TelegramApiException e) {
             logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
@@ -292,7 +295,7 @@ class Bot extends TelegramLongPollingBot {
         try {
             execute(response);
             logger.info("Sent message \"{}\" to {}", text, chatId);
-            chatStateRepository.changeState(chatId, State.ENTERMENU.toString());
+            chatStateRepository.changeState(chatId, DialogState.ENTERMENU.toString());
         } catch (TelegramApiException e) {
             logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
         }
@@ -330,7 +333,7 @@ class Bot extends TelegramLongPollingBot {
         return norm;
     }
 
-    public void handlerMenu(Long chatId, CallbackQuery callbackQuery){
+    public void handlerMenu(Long chatId, CallbackQuery callbackQuery) {
         System.out.println(callbackQuery.getData());
         if (callbackQuery.getData().equals("Моя анкета")) {
             String text = userRepository.getAllById(chatId);
@@ -344,6 +347,15 @@ class Bot extends TelegramLongPollingBot {
             } catch (TelegramApiException e) {
                 logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
             }
+        }
+    }
+
+    private static boolean isNum(String s) throws NumberFormatException {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
         }
     }
 
