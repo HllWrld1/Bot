@@ -29,35 +29,20 @@ import java.util.List;
 
 @Component
 class Bot extends TelegramLongPollingBot {
-
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
 
     private final String token;
     private final String username;
-
-
-/*    enum State {
-        ENTERNAME,
-        ENTERAGE,
-        ENTERHEIGHT,
-        ENTERWEIGHT,
-        ENTERACTIVITY,
-        ENTERGOAL,
-        ENTERMENU
-    }*/
-
 
     @Autowired
     private ChatStateRepository chatStateRepository;
     @Autowired
     private UserRepository userRepository;
 
-
     Bot(@Value("${bot.token}") String token, @Value("${bot.username}") String username) {
         this.token = token;
         this.username = username;
     }
-
 
     @Override
     public String getBotToken() {
@@ -147,11 +132,6 @@ class Bot extends TelegramLongPollingBot {
     public void handlerAge(Long chatId, Message message) {
         String text = "Какой твой рост (см)?";
         SendMessage response = new SendMessage();
-        if (!isNum(response.getText())) {
-            chatStateRepository.save(new ChatState(chatId, DialogState.ENTERNAME.toString()));
-
-            return;
-        }
         response.setChatId(String.valueOf(chatId));
         response.setText(text);
         int me = Integer.parseInt(message.getText());
