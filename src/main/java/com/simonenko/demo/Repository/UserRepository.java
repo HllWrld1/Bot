@@ -48,6 +48,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Transactional
     void changeImt(@Param("id") long id, @Param("imt") String imt);
 
+    @Query("SELECT name from User WHERE id = :id")
+    String getNameById(@Param("id") long id);
+
     @Query("SELECT age from User WHERE id = :id")
     String getAgeById(@Param("id") long id);
 
@@ -63,6 +66,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Query("SELECT goal from User WHERE id = :id")
     String getGoalById(@Param("id") long id);
 
-    @Query("SELECT age, height, weight, activity, goal from User WHERE id = :id")
+    @Query("SELECT calorieIntake from User WHERE id = :id")
+    String getcalorieIntakeById(@Param("id") long id);
+
+    @Query("SELECT name, age, height, weight, activity, goal from User WHERE id = :id")
     String getAllById(@Param("id") long id);
 }

@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.util.NumberUtils;
+
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
@@ -76,6 +76,10 @@ class Bot extends TelegramLongPollingBot {
                     case "ENTERWEIGHT":
                         handlerWeight(chatId, message);
                         break;
+                    case "ENTERMENU": {
+                        handlerMenu(chatId, message);
+                        break;
+                    }
                 }
             }
         } else if (update.hasCallbackQuery()) {
@@ -84,15 +88,14 @@ class Bot extends TelegramLongPollingBot {
             System.out.println(chatId);
             String state = chatStateRepository.getChatStateById(chatId);
             switch (state) {
-                case "ENTERGOAL": {
+                case "ENTERGOAL" ->
                     handlerGoal(chatId, callbackQuery);
-                }
-                case "ENTERACTIVITY": {
+
+
+                case "ENTERACTIVITY" ->
                     handlerActivity(chatId, callbackQuery);
-                }
-                case "ENTERMENU": {
-                    handlerMenu(chatId, callbackQuery);
-                }
+
+
             }
         }
     }
@@ -265,36 +268,46 @@ class Bot extends TelegramLongPollingBot {
 
     public void handlerGoal(Long chatId, CallbackQuery callbackQuery) {
         userRepository.changeGoal(chatId, callbackQuery.getData());
+        chatStateRepository.changeState(chatId, DialogState.ENTERMENU.toString());
         double norm = calculateNorm(chatId);
-
         String text = "Твоя суточная норма: " + norm + " ккал.";
         SendMessage response = new SendMessage();
         response.setChatId(String.valueOf(chatId));
         response.setText(text);
-        response.setReplyMarkup(handlerMenu());
+        response.setReplyMarkup(setMenu());
+
         try {
             execute(response);
             logger.info("Sent message \"{}\" to {}", text, chatId);
+            System.out.println("aaaaaaaaaaaaaaaaaaaa");
             chatStateRepository.changeState(chatId, DialogState.ENTERMENU.toString());
+            System.out.println("bbbbbbbbbbbbbbbbbbbbbbbbbb");
         } catch (TelegramApiException e) {
             logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
         }
     }
 
-    public ReplyKeyboardMarkup handlerMenu() {
+    public ReplyKeyboardMarkup setMenu() {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
         replyKeyboardMarkup.setSelective(true);
         replyKeyboardMarkup.setResizeKeyboard(true);
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow row1 = new KeyboardRow();
         KeyboardRow row2 = new KeyboardRow();
+        KeyboardRow row3 = new KeyboardRow();
         row1.add(new KeyboardButton("Получить меню"));
         row1.add(new KeyboardButton("Моя анкета"));
+        row2.add(new KeyboardButton("Мои продукты-исключения"));
+        row2.add(new KeyboardButton("Изменить продукты-исключения"));
+        row3.add(new KeyboardButton("Пройти анкетирование"));
+
         keyboardRows.add(row1);
         keyboardRows.add(row2);
+        keyboardRows.add(row3);
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;
     }
+
 
     public double calculateNorm(Long chatId) {
         int weight = Integer.parseInt(userRepository.getWeightById(chatId));
@@ -313,10 +326,22 @@ class Bot extends TelegramLongPollingBot {
         return norm;
     }
 
-    public void handlerMenu(Long chatId, CallbackQuery callbackQuery) {
-        System.out.println(callbackQuery.getData());
-        if (callbackQuery.getData().equals("Моя анкета")) {
-            String text = userRepository.getAllById(chatId);
+    public void handlerMenu(Long chatId, Message message) {
+        if (message.getText().equals("Моя анкета")) {
+            String name = userRepository.getNameById(chatId);
+            String age = userRepository.getAgeById(chatId);
+            String height = userRepository.getHeightById(chatId);
+            String weight = userRepository.getWeightById(chatId);
+            String goal = userRepository.getGoalById(chatId);
+            String activ = userRepository.getActivityById(chatId);
+            String norm = userRepository.getcalorieIntakeById(chatId);
+            String text = "Имя: " + name + "\n" +
+                    "Возраст: "  + age + "\n" +
+                    "Рост: " + height + "\n" +
+                    "Вес: " + weight + "\n" +
+                    "Цель: похудеть"  + "\n" +
+                    "Активность: 1.2"  + "\n" +
+                    "Суточная норма: "  + norm + " ккал.\n" ;
             SendMessage response = new SendMessage();
             response.setChatId(String.valueOf(chatId));
             response.setText(text);
@@ -328,14 +353,20 @@ class Bot extends TelegramLongPollingBot {
                 logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
             }
         }
-    }
+        else if(message.getText().equals("Получить меню")){
+            String text = "Завтрак: " + "\n" + "250 г овсяной каши на молоке, 50 г кураги, стакан зеленого чая с сахаром, банан." + "\n" +
+                    "Обед: " + "\n" + "250 г супа (зеленый горошек, морковь, картофель отварить и измельчить в блендере) со сливками, 150 г макрон из твердых сортов пшеницы, 100 г запеченой куриной грудки, морс из ягод." + "\n" +
+                     "Ужин: " + "\n" + "200 г овощного салата из огурцов, болгарского перца, помидора и редиса с зеленью, заправленный оливковым маслом, 1 яйцо." + "\n";
+            SendMessage response = new SendMessage();
+            response.setChatId(String.valueOf(chatId));
+            response.setText(text);
+            try {
+                execute(response);
+                logger.info("Sent message \"{}\" to {}", text, chatId);
 
-    private static boolean isNum(String s) throws NumberFormatException {
-        try {
-            Integer.parseInt(s);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
+            } catch (TelegramApiException e) {
+                logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
+            }
         }
     }
 
