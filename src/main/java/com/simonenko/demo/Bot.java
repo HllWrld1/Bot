@@ -279,7 +279,6 @@ class Bot extends TelegramLongPollingBot {
         try {
             execute(response);
             logger.info("Sent message \"{}\" to {}", text, chatId);
-            System.out.println("aaaaaaaaaaaaaaaaaaaa");
             chatStateRepository.changeState(chatId, DialogState.ENTERMENU.toString());
             System.out.println("bbbbbbbbbbbbbbbbbbbbbbbbbb");
         } catch (TelegramApiException e) {
@@ -294,16 +293,12 @@ class Bot extends TelegramLongPollingBot {
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         KeyboardRow row1 = new KeyboardRow();
         KeyboardRow row2 = new KeyboardRow();
-        KeyboardRow row3 = new KeyboardRow();
         row1.add(new KeyboardButton("Получить меню"));
-        row1.add(new KeyboardButton("Моя анкета"));
-        row2.add(new KeyboardButton("Мои продукты-исключения"));
-        row2.add(new KeyboardButton("Изменить продукты-исключения"));
-        row3.add(new KeyboardButton("Пройти анкетирование"));
+        row1.add(new KeyboardButton("Анкета"));
+        row2.add(new KeyboardButton("Продукты-исключения"));
 
         keyboardRows.add(row1);
         keyboardRows.add(row2);
-        keyboardRows.add(row3);
         replyKeyboardMarkup.setKeyboard(keyboardRows);
         return replyKeyboardMarkup;
     }
@@ -327,7 +322,7 @@ class Bot extends TelegramLongPollingBot {
     }
 
     public void handlerMenu(Long chatId, Message message) {
-        if (message.getText().equals("Моя анкета")) {
+        if (message.getText().equals("Анкета")) {
             String name = userRepository.getNameById(chatId);
             String age = userRepository.getAgeById(chatId);
             String height = userRepository.getHeightById(chatId);
@@ -345,13 +340,12 @@ class Bot extends TelegramLongPollingBot {
             SendMessage response = new SendMessage();
             response.setChatId(String.valueOf(chatId));
             response.setText(text);
-            try {
+           try {
                 execute(response);
-                logger.info("Sent message \"{}\" to {}", text, chatId);
 
             } catch (TelegramApiException e) {
-                logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
-            }
+               logger.error("Failed to send message  to due to error");
+           }
         }
         else if(message.getText().equals("Получить меню")){
             String text = "Завтрак: " + "\n" + "250 г овсяной каши на молоке, 50 г кураги, стакан зеленого чая с сахаром, банан." + "\n" +
@@ -368,6 +362,19 @@ class Bot extends TelegramLongPollingBot {
                 logger.error("Failed to send message \"{}\" to {} due to error: {}", text, chatId, e.getMessage());
             }
         }
+    }
+
+    public  ReplyKeyboardMarkup setButtonsQuestionnaire(){
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        replyKeyboardMarkup.setSelective(true);
+        replyKeyboardMarkup.setResizeKeyboard(true);
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton("Моя анкета"));
+        row1.add(new KeyboardButton("Изменить анкету"));
+        keyboardRows.add(row1);
+        replyKeyboardMarkup.setKeyboard(keyboardRows);
+        return replyKeyboardMarkup;
     }
 
     @PostConstruct

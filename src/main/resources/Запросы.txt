@@ -1,0 +1,19 @@
+CREATE TABLE  user(
+                      chat_id bigint PRIMARY KEY NOT NULL,
+                      name varchar(30)  ,
+                      age int ,
+                      height int ,
+                      weight int ,
+                      activity varchar(30),
+                      goal varchar(30) ,
+                      calorie_intake int ,
+                      deficit int,
+                      surplus int,
+                      imt int ,
+                      bju varchar(20)
+);
+
+CREATE TABLE chat_state (
+    chat_id bigint PRIMARY KEY NOT NULL,
+    state   varchar(30)
+);
